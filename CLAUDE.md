@@ -4,7 +4,7 @@ Static React game deployed to Cloudflare Workers as assets-only. Single-file app
 
 ## Deploy
 
-`npx wrangler deploy` — config in `wrangler.jsonc`, Worker name `mdjc`, target `mdjc.pheb.workers.dev`.
+`npx wrangler deploy` — config in `wrangler.jsonc`, Worker name `md-or-jc`, target `md-or-jc.pheb.workers.dev`.
 
 ## Image workflow
 
