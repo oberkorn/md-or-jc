@@ -21,5 +21,5 @@ Static React game deployed to Cloudflare Workers as assets-only. Single-file app
 
 ## Cloudflare
 
-- `wrangler.jsonc` pins `account_id` because Peter has multiple Cloudflare accounts
+- `wrangler.jsonc` pins `account_id` because the user has multiple Cloudflare accounts
 - Assets-only Worker (`assets.directory: "./"`); files excluded via `.assetsignore`
