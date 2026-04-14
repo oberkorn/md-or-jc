@@ -1,0 +1,6 @@
+.venv/
+.wrangler/
+MDJC.zip
+*.pyc
+__pycache__/
+.claude/

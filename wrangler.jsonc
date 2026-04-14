@@ -1,0 +1,9 @@
+{
+  "name": "mdjc",
+  "account_id": "8368572ef62befb9d55d399c1075aac1",
+  "compatibility_date": "2026-04-14",
+  "assets": {
+    "directory": "./",
+    "not_found_handling": "404-page"
+  }
+}

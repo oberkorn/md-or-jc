@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MD or JC?</title>
+<meta name="description" content="Is that a Medical Doctor or Jesus Christ? A quick 10-card guessing game. How many can you get right?" />
+<meta name="theme-color" content="#0d0d0d" />
+
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="MD or JC?" />
+<meta property="og:title" content="MD or JC? — Is that a Medical Doctor or Jesus Christ?" />
+<meta property="og:description" content="10 cards. 2 choices. 10 seconds each. How good is your diagnostic intuition?" />
+<meta property="og:image" content="/og-image.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Split composition: a smiling doctor in a white coat on the left, a Byzantine icon of Jesus Christ on the right, with 'MD or JC?' wordmark" />
+<meta property="og:url" content="https://md-or-jc.com/" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="MD or JC? — Medical Doctor or Jesus Christ?" />
+<meta name="twitter:description" content="10 cards. 2 choices. 10 seconds each. How good is your diagnostic intuition?" />
+<meta name="twitter:image" content="/og-image.jpg" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #0d0d0d; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const ALL_CARDS = [
+  { id: "md1",  answer: "doctor", img: "images/doctor_01.jpg" },
+  { id: "md2",  answer: "doctor", img: "images/doctor_02.jpg" },
+  { id: "md3",  answer: "doctor", img: "images/doctor_03.jpg" },
+  { id: "md4",  answer: "doctor", img: "images/doctor_04.jpg" },
+  { id: "md5",  answer: "doctor", img: "images/doctor_05.jpg" },
+  { id: "md6",  answer: "doctor", img: "images/doctor_06.jpg" },
+  { id: "md7",  answer: "doctor", img: "images/doctor_serious.jpg" },
+  { id: "md8",  answer: "doctor", img: "images/doctor_smiling.jpg" },
+  { id: "jc1",  answer: "jesus",  img: "images/Jesus_Christ.jpg" },
+  { id: "jc2",  answer: "jesus",  img: "images/Jesus_Christ_-_Hofmann.jpg" },
+  { id: "jc3",  answer: "jesus",  img: "images/jc_01.jpg" },
+  { id: "jc4",  answer: "jesus",  img: "images/jc_02.jpg" },
+  { id: "jc5",  answer: "jesus",  img: "images/jc_catholic.jpg" },
+  { id: "jc6",  answer: "jesus",  img: "images/jc_orthodox.jpg" },
+  { id: "jc7",  answer: "jesus",  img: "images/jc_prayer.jpg" },
+  { id: "jc8",  answer: "jesus",  img: "images/jc_sacredheart.jpg" },
+  { id: "jc9",  answer: "jesus",  img: "images/jc_serman.jpg" },
+  { id: "jc10", answer: "jesus",  img: "images/hobart.jpg" },
+  { id: "trump", answer: "trump", img: "images/trump_pope.jpg" },
+];
+
+const CARDS_PER_GAME = 10;
+const TIME_PER_CARD = 10; // seconds
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const PHASE = { START: "start", PLAY: "play", REVEAL: "reveal", END: "end" };
+
+function MDorJC() {
+  const [phase, setPhase] = useState(PHASE.START);
+  const [cards, setCards] = useState([]);
+  const [index, setIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [guess, setGuess] = useState(null);
+  const [results, setResults] = useState([]);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TIME_PER_CARD);
+
+  const startGame = () => {
+    const trump = ALL_CARDS.find((c) => c.answer === "trump");
+    const pool = ALL_CARDS.filter((c) => c.answer !== "trump");
+    setCards([...shuffleArray(pool).slice(0, CARDS_PER_GAME - 1), trump]);
+    setIndex(0);
+    setScore(0);
+    setGuess(null);
+    setResults([]);
+    setImgLoaded(false);
+    setTimeLeft(TIME_PER_CARD);
+    setPhase(PHASE.PLAY);
+  };
+
+  const finalizeGuess = (g) => {
+    const current = cards[index];
+    const correct = g !== null && current.answer !== "trump" && g === current.answer;
+    setGuess(g);
+    setResults((r) => [...r, { card: current, guess: g, correct }]);
+    if (correct) {
+      setScore((s) => s + 1);
+    } else {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+    setPhase(PHASE.REVEAL);
+  };
+
+  const handleGuess = (g) => {
+    if (phase !== PHASE.PLAY) return;
+    finalizeGuess(g);
+  };
+
+  const nextCard = () => {
+    if (index + 1 >= cards.length) {
+      setPhase(PHASE.END);
+    } else {
+      setIndex((i) => i + 1);
+      setGuess(null);
+      setImgLoaded(false);
+      setTimeLeft(TIME_PER_CARD);
+      setPhase(PHASE.PLAY);
+    }
+  };
+
+  // Countdown
+  useEffect(() => {
+    if (phase !== PHASE.PLAY) return;
+    if (timeLeft <= 0) {
+      finalizeGuess(null); // time out
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, timeLeft]);
+
+  const current = cards[index];
+
+  const getVerdict = () => {
+    if (score === 10) return { emoji: "🏆", text: "Omniscient! Perfect score!", sub: "You truly know your healers." };
+    if (score >= 8) return { emoji: "😇", text: "Almost divine!", sub: "Impressive diagnostic skills." };
+    if (score >= 6) return { emoji: "🩺", text: "Solid intuition.", sub: "You've got a good eye." };
+    if (score >= 4) return { emoji: "🤔", text: "Could go either way.", sub: "Maybe schedule a follow-up?" };
+    return { emoji: "💀", text: "Misdiagnosed.", sub: "Don't quit your day job." };
+  };
+
+  const timerColor = timeLeft <= 3 ? "#ef5350" : timeLeft <= 6 ? "#ffb74d" : "#4caf50";
+  const timerPct = (timeLeft / TIME_PER_CARD) * 100;
+
+  return (
+    <div style={styles.wrapper}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap');
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes cardIn {
+          from { opacity: 0; transform: scale(0.85) rotateY(-10deg); }
+          to { opacity: 1; transform: scale(1) rotateY(0deg); }
+        }
+        @keyframes shakeX {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-12px); }
+          40% { transform: translateX(12px); }
+          60% { transform: translateX(-8px); }
+          80% { transform: translateX(8px); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 20px rgba(76,175,80,0.3); }
+          50% { box-shadow: 0 0 40px rgba(76,175,80,0.6); }
+        }
+        @keyframes popIn {
+          0% { transform: scale(0); }
+          70% { transform: scale(1.15); }
+          100% { transform: scale(1); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes timerPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .btn-guess:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important; }
+        .btn-guess:active { transform: translateY(0) scale(0.98); }
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{ ...styles.header, marginBottom: phase === PHASE.PLAY || phase === PHASE.REVEAL ? 12 : 24 }}>
+        <h1 style={{ ...styles.logo, ...(phase === PHASE.PLAY || phase === PHASE.REVEAL ? styles.logoCompact : null) }}>
+          <span style={styles.logoMD}>MD</span>
+          <span style={{ ...styles.logoOr, ...(phase === PHASE.PLAY || phase === PHASE.REVEAL ? styles.logoOrCompact : null) }}>or</span>
+          <span style={styles.logoJC}>JC</span>
+          <span style={styles.logoQ}>?</span>
+        </h1>
+        {phase !== PHASE.START && phase !== PHASE.END && (
+          <div style={styles.scoreBar}>
+            <span style={styles.cardCount}>Card {index + 1} / {cards.length}</span>
+            <span style={styles.scoreText}>Score: {score}</span>
+          </div>
+        )}
+      </div>
+
+      {/* START SCREEN */}
+      {phase === PHASE.START && (
+        <div style={{ ...styles.centerCol, animation: "fadeUp 0.6s ease" }}>
+          <div style={styles.tagline}>Is it a <span style={{ color: "#4fc3f7" }}>Medical Doctor</span> or <span style={{ color: "#ffb74d" }}>Jesus Christ</span>?</div>
+          <p style={styles.subtitle}>10 cards. 2 choices. {TIME_PER_CARD} seconds each.</p>
+          <button style={styles.startBtn} onClick={startGame}>
+            Begin the Examination
+          </button>
+        </div>
+      )}
+
+      {/* PLAY / REVEAL */}
+      {(phase === PHASE.PLAY || phase === PHASE.REVEAL) && current && (
+        <div style={{ ...styles.centerCol, animation: "cardIn 0.4s ease" }} key={current.id + "-" + index}>
+          {/* Card */}
+          <div style={{
+            ...styles.card,
+            animation: shake ? "shakeX 0.5s ease" : undefined,
+            ...(phase === PHASE.REVEAL && guess === current.answer ? { animation: "pulseGlow 1s ease 2" } : {}),
+          }}>
+            {/* Image */}
+            <div style={styles.imgWrap}>
+              {!imgLoaded && (
+                <div style={styles.imgPlaceholder}>
+                  <div style={styles.shimmer} />
+                </div>
+              )}
+              <img
+                src={current.img}
+                alt="Mystery person"
+                style={{ ...styles.cardImg, opacity: imgLoaded ? 1 : 0 }}
+                onLoad={() => setImgLoaded(true)}
+                onError={() => setImgLoaded(true)}
+              />
+            </div>
+            {/* Timer bar */}
+            <div style={styles.timerBar}>
+              <div style={{
+                ...styles.timerFill,
+                width: `${phase === PHASE.PLAY ? timerPct : 0}%`,
+                background: timerColor,
+              }} />
+            </div>
+            <div style={styles.timerLabel}>
+              <span style={styles.hintLabel}>TIME</span>
+              <span style={{
+                ...styles.timerText,
+                color: timerColor,
+                animation: timeLeft <= 3 && phase === PHASE.PLAY ? "timerPulse 0.6s infinite" : undefined,
+              }}>
+                {phase === PHASE.PLAY ? `${timeLeft}s` : "—"}
+              </span>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          {phase === PHASE.PLAY && (
+            <div style={styles.btnRow}>
+              <button className="btn-guess" style={{ ...styles.guessBtn, ...styles.guessMD }} onClick={() => handleGuess("doctor")}>
+                MD
+              </button>
+              <button className="btn-guess" style={{ ...styles.guessBtn, ...styles.guessJC }} onClick={() => handleGuess("jesus")}>
+                JC
+              </button>
+            </div>
+          )}
+
+          {/* Reveal feedback */}
+          {phase === PHASE.REVEAL && (
+            <div style={{ ...styles.revealBox, animation: "popIn 0.35s ease" }}>
+              <div style={{
+                ...styles.revealEmoji,
+                color: guess === current.answer ? "#4caf50" : "#ef5350"
+              }}>
+                {guess === current.answer ? "✅" : guess === null ? "⏰" : "❌"}
+              </div>
+              <div style={styles.revealText}>
+                {current.answer === "trump"
+                  ? `Wrong. The answer was TRUMP. "I thought it was me as a doctor, Red Cross worker." —DJT`
+                  : guess === current.answer
+                  ? "Correct!"
+                  : guess === null
+                  ? `Time's up! That was ${current.answer === "doctor" ? "an MD" : "JC"}.`
+                  : `Nope! That was ${current.answer === "doctor" ? "an MD" : "JC"}.`}
+              </div>
+              <button style={styles.nextBtn} onClick={nextCard}>
+                {index + 1 >= cards.length ? "See Results →" : "Next Card →"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* END SCREEN */}
+      {phase === PHASE.END && (() => {
+        const v = getVerdict();
+        return (
+          <div style={{ ...styles.centerCol, animation: "fadeUp 0.6s ease" }}>
+            <div style={{ fontSize: 64, animation: "popIn 0.5s ease" }}>{v.emoji}</div>
+            <div style={styles.finalScore}>{score} / 10</div>
+            <div style={styles.verdictText}>{v.text}</div>
+            <div style={styles.verdictSub}>{v.sub}</div>
+
+            <div style={styles.resultsGrid}>
+              {results.map((r, i) => (
+                <div key={i} style={{
+                  ...styles.resultPill,
+                  borderColor: r.correct ? "#4caf50" : "#ef5350",
+                  animation: `fadeUp 0.3s ease ${i * 0.06}s both`
+                }}>
+                  <span style={{ fontSize: 14 }}>{r.correct ? "✅" : r.guess === null ? "⏰" : "❌"}</span>
+                  <span style={styles.resultLabel}>
+                    {r.card.answer === "trump" ? "🗽 ??" : r.card.answer === "doctor" ? "🩺 MD" : "✝️ JC"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <button style={styles.startBtn} onClick={startGame}>
+              Play Again
+            </button>
+          </div>
+        );
+      })()}
+
+      <div style={styles.footer}>A game of faith & medicine</div>
+    </div>
+  );
+}
+
+const styles = {
+  wrapper: {
+    minHeight: "100vh",
+    background: "linear-gradient(160deg, #0d0d0d 0%, #1a1a2e 40%, #16213e 100%)",
+    color: "#f0f0f0",
+    fontFamily: "'DM Sans', sans-serif",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "24px 16px",
+    boxSizing: "border-box",
+  },
+  header: { width: "100%", maxWidth: 500, textAlign: "center", marginBottom: 24 },
+  logo: { margin: 0, fontSize: 48, fontFamily: "'Playfair Display', serif", fontWeight: 900, letterSpacing: "-1px", lineHeight: 1.1 },
+  logoCompact: { fontSize: 26 },
+  logoMD: { color: "#4fc3f7" },
+  logoOr: { color: "#666", fontSize: 28, fontWeight: 400, margin: "0 8px", fontStyle: "italic" },
+  logoOrCompact: { fontSize: 16, margin: "0 6px" },
+  logoJC: { color: "#ffb74d" },
+  logoQ: { color: "#ef5350" },
+  scoreBar: { display: "flex", justifyContent: "space-between", marginTop: 12, padding: "8px 16px", background: "rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 14, fontWeight: 500 },
+  cardCount: { color: "#aaa" },
+  scoreText: { color: "#4caf50", fontWeight: 700 },
+  centerCol: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 500, flex: 1 },
+  tagline: { fontSize: 22, fontWeight: 700, textAlign: "center", marginTop: 40, lineHeight: 1.4 },
+  subtitle: { color: "#888", fontSize: 16, marginTop: 12, fontStyle: "italic" },
+  startBtn: {
+    marginTop: 32, padding: "16px 40px", fontSize: 18, fontWeight: 700,
+    fontFamily: "'DM Sans', sans-serif", color: "#fff",
+    background: "linear-gradient(135deg, #e53935, #ff7043)", border: "none",
+    borderRadius: 12, cursor: "pointer", transition: "all 0.2s",
+    boxShadow: "0 4px 20px rgba(229,57,53,0.4)",
+  },
+  card: { width: "100%", maxWidth: 440, borderRadius: 16, overflow: "hidden", background: "#111", border: "2px solid rgba(255,255,255,0.08)", boxShadow: "0 12px 40px rgba(0,0,0,0.5)" },
+  imgWrap: { width: "100%", aspectRatio: "1 / 1", maxHeight: "48vh", position: "relative", overflow: "hidden", background: "#0a0a0a" },
+  imgPlaceholder: { position: "absolute", inset: 0, background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center" },
+  shimmer: { width: "100%", height: "100%", background: "linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" },
+  cardImg: { width: "100%", height: "100%", objectFit: "cover", transition: "opacity 0.4s ease" },
+  timerBar: { width: "100%", height: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" },
+  timerFill: { height: "100%", transition: "width 1s linear, background 0.3s ease" },
+  timerLabel: { display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderTop: "1px solid rgba(255,255,255,0.06)" },
+  hintLabel: { fontSize: 10, fontWeight: 700, letterSpacing: 2, color: "#666", background: "rgba(255,255,255,0.06)", padding: "3px 8px", borderRadius: 4 },
+  timerText: { fontSize: 15, fontWeight: 700, fontFamily: "'Playfair Display', serif" },
+  btnRow: { display: "flex", gap: 16, marginTop: 24, width: "100%", maxWidth: 440 },
+  guessBtn: { flex: 1, padding: "18px 0", fontSize: 22, fontWeight: 700, fontFamily: "'Playfair Display', serif", border: "none", borderRadius: 12, cursor: "pointer", transition: "all 0.2s ease", letterSpacing: 1 },
+  guessMD: { background: "linear-gradient(135deg, #0277bd, #4fc3f7)", color: "#fff", boxShadow: "0 4px 20px rgba(2,119,189,0.35)" },
+  guessJC: { background: "linear-gradient(135deg, #e65100, #ffb74d)", color: "#fff", boxShadow: "0 4px 20px rgba(230,81,0,0.35)" },
+  revealBox: { marginTop: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 },
+  revealEmoji: { fontSize: 40 },
+  revealText: { fontSize: 20, fontWeight: 700, fontFamily: "'Playfair Display', serif", textAlign: "center" },
+  nextBtn: { marginTop: 12, padding: "12px 32px", fontSize: 16, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, cursor: "pointer", transition: "all 0.2s" },
+  finalScore: { fontSize: 56, fontWeight: 900, fontFamily: "'Playfair Display', serif", marginTop: 8, background: "linear-gradient(135deg, #4fc3f7, #ffb74d)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" },
+  verdictText: { fontSize: 24, fontWeight: 700, marginTop: 4 },
+  verdictSub: { fontSize: 16, color: "#888", fontStyle: "italic", marginTop: 4 },
+  resultsGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 24, justifyContent: "center", maxWidth: 440 },
+  resultPill: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid", borderRadius: 8, fontSize: 13 },
+  resultLabel: { color: "#bbb", fontSize: 12 },
+  footer: { marginTop: 32, fontSize: 12, color: "#444", fontStyle: "italic", letterSpacing: 1 },
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<MDorJC />);
+</script>
+</body>
+</html>

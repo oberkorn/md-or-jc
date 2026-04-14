@@ -1,0 +1,13 @@
+MDJC.zip
+wrangler.jsonc
+.assetsignore
+.wrangler
+.venv
+.git
+.gitignore
+images_original
+crop_faces.py
+yunet.onnx
+README.md
+CLAUDE.md
+gen_raw
