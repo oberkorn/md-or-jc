@@ -1,5 +1,6 @@
 .venv/
 .wrangler/
+node_modules/
 MDJC.zip
 *.pyc
 __pycache__/

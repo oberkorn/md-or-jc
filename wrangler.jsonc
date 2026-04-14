@@ -2,8 +2,10 @@
   "name": "md-or-jc",
   "account_id": "8230c5f8b428420908b3c13dcec21ab3",
   "compatibility_date": "2026-04-14",
+  "main": "src/index.ts",
   "assets": {
     "directory": "./",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "run_worker_first": ["/s/*", "/og/*"]
   }
 }

@@ -11,3 +11,9 @@ yunet.onnx
 README.md
 CLAUDE.md
 gen_raw
+src
+node_modules
+package.json
+package-lock.json
+tsconfig.json
+.claude

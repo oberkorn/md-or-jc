@@ -76,6 +76,55 @@ function shuffleArray(arr) {
 
 const PHASE = { START: "start", PLAY: "play", REVEAL: "reveal", END: "end" };
 
+function encodeShareId(results) {
+  // 9 regular cards → 9-bit mask, trump (always wrong) implicit
+  let mask = 0;
+  const regular = results.filter((r) => r.card.answer !== "trump");
+  regular.forEach((r, i) => {
+    if (r.correct) mask |= 1 << (regular.length - 1 - i);
+  });
+  return mask.toString(16);
+}
+
+function buildShareText(results, score) {
+  const grid = results
+    .map((r, i) => {
+      if (r.card.answer === "trump") return "🗽";
+      return r.correct ? "✅" : "❌";
+    })
+    .join("");
+  const id = encodeShareId(results);
+  return `MD or JC? ${score}/${results.length}\n${grid}\nhttps://md-or-jc.com/s/${id}`;
+}
+
+function ShareRow({ results, score }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const text = buildShareText(results, score);
+    const shareData = { title: "MD or JC?", text };
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {
+      window.prompt("Copy your result:", text);
+    }
+  };
+  return (
+    <button style={styles.shareBtn} onClick={share}>
+      {copied ? "✓ Copied!" : "📣 Share your score"}
+    </button>
+  );
+}
+
 function MDorJC() {
   const [phase, setPhase] = useState(PHASE.START);
   const [cards, setCards] = useState([]);
@@ -329,6 +378,8 @@ function MDorJC() {
               ))}
             </div>
 
+            <ShareRow results={results} score={score} />
+
             <button style={styles.startBtn} onClick={startGame}>
               Play Again
             </button>
@@ -395,6 +446,7 @@ const styles = {
   finalScore: { fontSize: 56, fontWeight: 900, fontFamily: "'Playfair Display', serif", marginTop: 8, background: "linear-gradient(135deg, #4fc3f7, #ffb74d)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" },
   verdictText: { fontSize: 24, fontWeight: 700, marginTop: 4 },
   verdictSub: { fontSize: 16, color: "#888", fontStyle: "italic", marginTop: 4 },
+  shareBtn: { marginTop: 24, padding: "14px 32px", fontSize: 16, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", color: "#fff", background: "linear-gradient(135deg, #1e88e5, #43a047)", border: "none", borderRadius: 12, cursor: "pointer", boxShadow: "0 4px 20px rgba(30,136,229,0.35)", transition: "transform 0.2s" },
   resultsGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 24, justifyContent: "center", maxWidth: 440 },
   resultPill: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid", borderRadius: 8, fontSize: 13 },
   resultLabel: { color: "#bbb", fontSize: 12 },

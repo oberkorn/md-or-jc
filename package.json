@@ -1,0 +1,24 @@
+{
+  "name": "mdjc",
+  "version": "1.0.0",
+  "description": "Is that face a **Medical Doctor** or **Jesus Christ**? A 10-card image guessing game.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oberkorn/md-or-jc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/oberkorn/md-or-jc/issues"
+  },
+  "homepage": "https://github.com/oberkorn/md-or-jc#readme",
+  "dependencies": {
+    "workers-og": "^0.0.27"
+  }
+}
