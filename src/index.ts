@@ -8,6 +8,25 @@ const CANONICAL = 'https://md-or-jc.com';
 const CARDS_PER_GAME = 10;
 const REGULAR_CARDS = CARDS_PER_GAME - 1;
 
+// Obfuscation — turn 9-bit result mask (0..511) into a ~9-digit deterministic
+// code so URLs don't look sequential. Keep these in sync with index.html.
+const OBF_M = 999999937;
+const OBF_P = 2654435769;
+const OBF_C = 123456789;
+
+function obfuscate(mask: number): string {
+  return (((mask * OBF_P) + OBF_C) % OBF_M).toString();
+}
+
+function deobfuscate(code: string): number {
+  const target = Number(code);
+  if (!Number.isFinite(target) || target < 0) return 0;
+  for (let i = 0; i <= 0x1ff; i++) {
+    if (((i * OBF_P) + OBF_C) % OBF_M === target) return i;
+  }
+  return 0;
+}
+
 type Verdict = { text: string; sub: string };
 const VERDICTS: Record<number, Verdict> = {
   9: { text: 'Almost divine!', sub: 'Impressive diagnostic skills.' },
@@ -23,14 +42,13 @@ const VERDICTS: Record<number, Verdict> = {
 };
 
 function decode(raw: string) {
-  const clean = (raw || '0').toLowerCase().replace(/[^0-9a-f]/g, '');
-  const mask = Math.min(parseInt(clean || '0', 16) || 0, 0x1ff); // only bits 0..8 (regular cards)
+  const clean = (raw || '').replace(/[^0-9]/g, '');
+  const mask = deobfuscate(clean) & 0x1ff; // only bits 0..8 (regular cards)
   const bits: boolean[] = [];
   for (let i = REGULAR_CARDS - 1; i >= 0; i--) bits.push(!!(mask & (1 << i)));
-  const trumpCorrect = false; // trump card is always scored wrong
-  bits.push(trumpCorrect);
+  bits.push(false); // trump card is always scored wrong
   const score = bits.slice(0, REGULAR_CARDS).filter(Boolean).length;
-  const canonicalId = mask.toString(16);
+  const canonicalId = obfuscate(mask);
   return { mask, bits, score, canonicalId };
 }
 

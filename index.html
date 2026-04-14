@@ -76,14 +76,18 @@ function shuffleArray(arr) {
 
 const PHASE = { START: "start", PLAY: "play", REVEAL: "reveal", END: "end" };
 
+// Keep in sync with src/index.ts (obfuscation constants)
+const OBF_M = 999999937;
+const OBF_P = 2654435769;
+const OBF_C = 123456789;
+
 function encodeShareId(results) {
-  // 9 regular cards → 9-bit mask, trump (always wrong) implicit
   let mask = 0;
   const regular = results.filter((r) => r.card.answer !== "trump");
   regular.forEach((r, i) => {
     if (r.correct) mask |= 1 << (regular.length - 1 - i);
   });
-  return mask.toString(16);
+  return (((mask * OBF_P) + OBF_C) % OBF_M).toString();
 }
 
 function buildShareText(results, score) {
@@ -98,30 +102,45 @@ function buildShareText(results, score) {
 }
 
 function ShareRow({ results, score }) {
-  const [copied, setCopied] = useState(false);
-  const share = async () => {
-    const text = buildShareText(results, score);
+  const [status, setStatus] = useState(null); // null | "shared" | "copied-text" | "copied-link"
+  const flash = (s) => { setStatus(s); setTimeout(() => setStatus(null), 1800); };
+
+  const text = buildShareText(results, score);
+  const shareUrl = `https://md-or-jc.com/s/${encodeShareId(results)}`;
+
+  const nativeShare = async () => {
     const shareData = { title: "MD or JC?", text };
     try {
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
         await navigator.share(shareData);
+        flash("shared");
         return;
       }
     } catch (e) {
       if (e && e.name === "AbortError") return;
     }
+    // Fall through to clipboard of full text
+    await copyText(text, "copied-text");
+  };
+
+  const copyText = async (value, tag) => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(value);
+      flash(tag);
     } catch (_) {
-      window.prompt("Copy your result:", text);
+      window.prompt("Copy:", value);
     }
   };
+
   return (
-    <button style={styles.shareBtn} onClick={share}>
-      {copied ? "✓ Copied!" : "📣 Share your score"}
-    </button>
+    <div style={styles.shareRow}>
+      <button style={styles.shareBtn} onClick={nativeShare}>
+        {status === "shared" ? "✓ Shared" : status === "copied-text" ? "✓ Copied!" : "📣 Share score"}
+      </button>
+      <button style={styles.copyBtn} onClick={() => copyText(shareUrl, "copied-link")}>
+        {status === "copied-link" ? "✓ Link copied" : "🔗 Copy link"}
+      </button>
+    </div>
   );
 }
 
@@ -446,7 +465,9 @@ const styles = {
   finalScore: { fontSize: 56, fontWeight: 900, fontFamily: "'Playfair Display', serif", marginTop: 8, background: "linear-gradient(135deg, #4fc3f7, #ffb74d)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" },
   verdictText: { fontSize: 24, fontWeight: 700, marginTop: 4 },
   verdictSub: { fontSize: 16, color: "#888", fontStyle: "italic", marginTop: 4 },
-  shareBtn: { marginTop: 24, padding: "14px 32px", fontSize: 16, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", color: "#fff", background: "linear-gradient(135deg, #1e88e5, #43a047)", border: "none", borderRadius: 12, cursor: "pointer", boxShadow: "0 4px 20px rgba(30,136,229,0.35)", transition: "transform 0.2s" },
+  shareRow: { display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap", justifyContent: "center" },
+  shareBtn: { padding: "14px 28px", fontSize: 16, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", color: "#fff", background: "linear-gradient(135deg, #1e88e5, #43a047)", border: "none", borderRadius: 12, cursor: "pointer", boxShadow: "0 4px 20px rgba(30,136,229,0.35)", transition: "transform 0.2s" },
+  copyBtn: { padding: "14px 22px", fontSize: 15, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", color: "#e8e8e8", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12, cursor: "pointer", transition: "all 0.2s" },
   resultsGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 24, justifyContent: "center", maxWidth: 440 },
   resultPill: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid", borderRadius: 8, fontSize: 13 },
   resultLabel: { color: "#bbb", fontSize: 12 },
