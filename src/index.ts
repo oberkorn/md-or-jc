@@ -18,13 +18,14 @@ function obfuscate(mask: number): string {
   return (((mask * OBF_P) + OBF_C) % OBF_M).toString();
 }
 
-function deobfuscate(code: string): number {
+function deobfuscate(code: string): number | null {
+  if (!/^[0-9]+$/.test(code)) return null;
   const target = Number(code);
-  if (!Number.isFinite(target) || target < 0) return 0;
+  if (!Number.isFinite(target) || target < 0 || !Number.isInteger(target)) return null;
   for (let i = 0; i <= 0x1ff; i++) {
     if (((i * OBF_P) + OBF_C) % OBF_M === target) return i;
   }
-  return 0;
+  return null;
 }
 
 type Verdict = { text: string; sub: string };
@@ -42,8 +43,8 @@ const VERDICTS: Record<number, Verdict> = {
 };
 
 function decode(raw: string) {
-  const clean = (raw || '').replace(/[^0-9]/g, '');
-  const mask = deobfuscate(clean) & 0x1ff; // only bits 0..8 (regular cards)
+  const mask = deobfuscate(raw);
+  if (mask === null) return null;
   const bits: boolean[] = [];
   for (let i = REGULAR_CARDS - 1; i >= 0; i--) bits.push(!!(mask & (1 << i)));
   bits.push(false); // trump card is always scored wrong
@@ -144,10 +145,13 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
 
+    const home = `${url.origin}/`;
+
     if (path.startsWith('/og/') && path.endsWith('.png')) {
       const id = path.slice(4, -4);
-      const { score, bits } = decode(id);
-      return new ImageResponse(ogCardHtml(score, bits), {
+      const decoded = decode(id);
+      if (!decoded) return Response.redirect(home, 302);
+      return new ImageResponse(ogCardHtml(decoded.score, decoded.bits), {
         width: 1200,
         height: 630,
         emoji: 'twemoji',
@@ -159,8 +163,9 @@ export default {
 
     if (path.startsWith('/s/')) {
       const id = path.slice(3).split('/')[0];
-      const { score, bits, canonicalId } = decode(id);
-      return new Response(landingHtml(canonicalId, score, bits), {
+      const decoded = decode(id);
+      if (!decoded) return Response.redirect(home, 302);
+      return new Response(landingHtml(decoded.canonicalId, decoded.score, decoded.bits), {
         headers: {
           'Content-Type': 'text/html; charset=UTF-8',
           'Cache-Control': 'public, max-age=31536000, immutable',
